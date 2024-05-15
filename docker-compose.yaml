@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  server:
+    image: openscope-service:latest
+    container_name: openscope
+    ports:
+      - "0.0.0.0:8000:8000"
+    restart: on-failure
+    volumes:
+      - "./config.yaml:/root/config.yaml"
+      - "./log:/root/log"
+    networks:
+      - sdk
+
+networks:
+  sdk:
+    driver: bridge

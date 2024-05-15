@@ -1,0 +1,7 @@
+PostgresqlConfig:
+  Host: 127.0.0.1
+  Port: 80
+  Account: 
+  Password: 'user'
+  DBName: default
+  SchemaName: db_ads
