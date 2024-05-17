@@ -73,7 +73,7 @@ func IsMinerOrValidor(minerid string) (bool, error) {
 		return false, err
 	}
 
-	if res.Stake > 10000000000000 {
+	if res.Stake > 1000000000000 {
 		return false, nil
 	}
 
