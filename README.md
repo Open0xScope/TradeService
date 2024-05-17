@@ -1,7 +1,17 @@
 # TradeService
 
-TradeService follows the Restfull api specification and provides the ability to create orders, query orders, and push events.
+TradeService follows the Restful api specification and provides trade services for miners and validators, which include:
 
+1. Receive the trades from all the miners.
+2. Process validator queries to check trades & prices.
+
+You can view the TradeService as a buffer between miners and validators.
+
+Right now the service is run by OpenScope team, we plan to require all the validator to run their own trade service very soon.
+
+## Run the service
+
+You can try to run the trade service follow the below steps now.
 
 ## Prerequisite
 
