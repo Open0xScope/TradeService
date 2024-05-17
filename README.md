@@ -53,7 +53,7 @@ TradeService follows the Restfull api specification and provides the ability to 
 
     ```
 
-### Start TradeService
+### Stop TradeService
 
     ```bash
 
