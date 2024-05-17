@@ -63,7 +63,7 @@ You can try to run the trade service follow the below steps now.
 
     ```
 
-### Start TradeService
+### Stop TradeService
 
     ```bash
 
