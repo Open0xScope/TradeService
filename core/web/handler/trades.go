@@ -101,6 +101,10 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade) (string, error)
 		return "access limit exceeded, please try again later", err
 	}
 
+	if ok := CheckTradeRateLimitDay(newTrade.PubKey); !ok {
+		return "access day limit exceeded, please try again later", err
+	}
+
 	if latestTrade != nil {
 		if newTrade.Nonce == latestTrade.Nonce {
 			return "invalid nonce", errors.New("trade has invalid nonce")

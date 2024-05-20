@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Open0xScope/CommuneXService/core/db"
@@ -24,12 +25,24 @@ func getUserTrades(userId string) ([]model.AdsTokenTrade, error) {
 	return res, nil
 }
 
-func getAllTrades() ([]model.AdsTokenTrade, error) {
+func getAllTrades(times string) ([]model.AdsTokenTrade, error) {
 	ctx := context.Background()
 	res := make([]model.AdsTokenTrade, 0)
-	last7daytime := time.Now().UTC().Add(-7 * 24 * time.Hour).Unix()
 
-	err := db.GetDB().NewSelect().Model(&res).Where("timestamp >= ?", last7daytime).Order("timestamp DESC").Limit(1000).Scan(ctx)
+	last7daytime := int64(0)
+
+	if times == "" {
+		last7daytime = time.Now().UTC().Add(-7 * 24 * time.Hour).Unix()
+	} else {
+		s, err := strconv.ParseInt(times, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		last7daytime = s
+	}
+
+	err := db.GetDB().NewSelect().Model(&res).Where("timestamp >= ?", last7daytime).Order("timestamp DESC").Limit(5000).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +108,9 @@ func GetAllTraddes(c *gin.Context) {
 	timeStr := c.Query("timestamp")
 	sigStr := c.Query("sig")
 
-	logger.Logrus.WithFields(logrus.Fields{"MinerID": userIdStr, "PubKey": pubKeyStr, "Timestamp": timeStr, "Signature": sigStr}).Info("GetAllTraddes info")
+	tradetimeStr := c.Query("tradetime")
+
+	logger.Logrus.WithFields(logrus.Fields{"MinerID": userIdStr, "PubKey": pubKeyStr, "Timestamp": timeStr, "Signature": sigStr, "TradeTime": tradetimeStr}).Info("GetAllTraddes info")
 
 	rawData := fmt.Sprintf("%s%s%s", userIdStr, pubKeyStr, timeStr)
 	err := VerifySign(rawData, pubKeyStr, sigStr)
@@ -128,7 +143,7 @@ func GetAllTraddes(c *gin.Context) {
 		return
 	}
 
-	result, err := getAllTrades()
+	result, err := getAllTrades(tradetimeStr)
 	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("GetAllTraddes getAllTrades failed")
 		r.Code = http.StatusInternalServerError
