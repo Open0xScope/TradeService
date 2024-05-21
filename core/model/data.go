@@ -56,4 +56,6 @@ type AdsMinerWhitelist struct {
 	TokenAddress string `bun:"address,pk,notnull"`
 	UID          int    `bun:"uid"`
 	Stake        int    `bun:"stake"`
+	Status       int    `bun:"status"`
+	TimeStamp    int64  `bun:"timestamp"`
 }

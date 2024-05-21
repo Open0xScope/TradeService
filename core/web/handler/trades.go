@@ -77,6 +77,10 @@ func IsMinerOrValidor(minerid string) (bool, error) {
 		return false, nil
 	}
 
+	if res.Status < 1 {
+		return false, errors.New("miner is not invalided")
+	}
+
 	return true, nil
 }
 
