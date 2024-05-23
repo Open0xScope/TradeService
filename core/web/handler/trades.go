@@ -201,6 +201,7 @@ func CreateTradde(c *gin.Context) {
 		Timestamp:       in.Timestamp,
 		TradePrice:      tradePrice.Price,
 		Signature:       in.Signature,
+		Status:          1,
 		CreatedAt:       time.Now().UTC(),
 		UpdatedAt:       time.Now().UTC(),
 	}
