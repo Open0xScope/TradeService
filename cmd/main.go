@@ -28,5 +28,7 @@ func main() {
 
 	task.TradeStatusTask()
 
+	task.MinerStatusTask()
+
 	web.Run()
 }

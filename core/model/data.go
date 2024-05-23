@@ -33,6 +33,7 @@ type AdsTokenTrade struct {
 	TradePrice      float64 `bun:"price,notnull"`
 	TradePrice4H    float64 `bun:"price_4h"`
 	Signature       string  `bun:"signature,notnull"`
+	Status          int     `bun:"status"`
 
 	CreatedAt time.Time `bun:"create_at,notnull"`
 	UpdatedAt time.Time `bun:"update_at,notnull"`
@@ -53,9 +54,9 @@ type ChainTokenPrice struct {
 type AdsMinerWhitelist struct {
 	bun.BaseModel `bun:"table:ads_addr_whitelist_test,alias:oat"`
 
-	TokenAddress string `bun:"address,pk,notnull"`
-	UID          int    `bun:"uid"`
-	Stake        int    `bun:"stake"`
-	Status       int    `bun:"status"`
-	TimeStamp    int64  `bun:"timestamp"`
+	Address   string `bun:"address,pk,notnull"`
+	UID       int    `bun:"uid"`
+	Stake     int    `bun:"stake"`
+	Status    int    `bun:"status"`
+	TimeStamp int64  `bun:"timestamp"`
 }
