@@ -32,7 +32,7 @@ func getAllTrades(times string) ([]model.AdsTokenTrade, error) {
 	last7daytime := int64(0)
 
 	if times == "" {
-		last7daytime = time.Now().UTC().Add(-7 * 24 * time.Hour).Unix()
+		last7daytime = time.Now().UTC().Add(-14 * 24 * time.Hour).Unix()
 	} else {
 		s, err := strconv.ParseInt(times, 10, 64)
 		if err != nil {
@@ -42,7 +42,7 @@ func getAllTrades(times string) ([]model.AdsTokenTrade, error) {
 		last7daytime = s
 	}
 
-	err := db.GetDB().NewSelect().Model(&res).Where("status > 0 and timestamp >= ?", last7daytime).Order("timestamp DESC").Limit(5000).Scan(ctx)
+	err := db.GetDB().NewSelect().Model(&res).Where("status > 0 and timestamp >= ?", last7daytime).Order("timestamp DESC").Limit(10000).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
