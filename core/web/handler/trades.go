@@ -131,8 +131,8 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade) (string, error)
 		return "position manager invalid", errors.New("position manager is invalid")
 	}
 
-	if newTrade.Timestamp > time.Now().Unix() {
-		return "creation timestamp less than now", errors.New("trade has invalid timestamp")
+	if newTrade.Timestamp >= time.Now().Unix() {
+		return "creation timestamp more than now", errors.New("trade has invalid timestamp")
 	}
 
 	last10min := time.Now().Add(-time.Minute).Unix()
