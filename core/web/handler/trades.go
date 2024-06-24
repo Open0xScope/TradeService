@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"time"
 
@@ -16,14 +17,23 @@ import (
 )
 
 type InCreateTrade struct {
-	MinerID         string `json:"miner_id"`
-	PubKey          string `json:"pub_key"`
-	Nonce           int64  `json:"nonce"`
-	Token           string `json:"token"`
-	PositionManager string `json:"position_manager"`
-	Direction       int    `json:"direction"`
-	Timestamp       int64  `json:"timestamp"`
-	Signature       string `json:"signature"`
+	MinerID         string  `json:"miner_id"`
+	PubKey          string  `json:"pub_key"`
+	Nonce           int64   `json:"nonce"`
+	Token           string  `json:"token"`
+	PositionManager string  `json:"position_manager"`
+	Direction       int     `json:"direction"`
+	Timestamp       int64   `json:"timestamp"`
+	Leverage        float64 `json:"leverage"`
+	Signature       string  `json:"signature"`
+}
+
+func isDivisible(a, b float64) bool {
+	if b == 0 {
+		return false
+	}
+	quotient := a / b
+	return math.Abs(quotient-math.Round(quotient)) < 1e-9
 }
 
 func insertTrade(txs *model.AdsTokenTrade) error {
@@ -96,9 +106,22 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade) (string, error)
 	}
 
 	msg := fmt.Sprintf("%s%s%d%s%s%d%d", newTrade.MinerID, newTrade.PubKey, newTrade.Nonce, newTrade.TokenAddress, newTrade.PositionManager, newTrade.Direction, newTrade.Timestamp)
+	if newTrade.Leverage == 0 {
+		newTrade.Leverage = 1.0
+	} else {
+		if newTrade.Leverage < 0.2 || newTrade.Leverage > 5 {
+			return "the leverage is not in the range", errors.New("the leverage is not in the range")
+		}
+		msg += fmt.Sprintf("%.1f", newTrade.Leverage)
+	}
+
 	err = VerifySign(msg, newTrade.PubKey, newTrade.Signature)
 	if err != nil {
 		return "sign error", err
+	}
+
+	if !isDivisible(newTrade.Leverage, 0.1) {
+		return "the leverage is not an integer multiple of the basic unit", errors.New("the leverage is not an integer multiple of the basic unit")
 	}
 
 	if ok := CheckTradeRateLimit(newTrade.PubKey); !ok {
@@ -202,6 +225,7 @@ func CreateTradde(c *gin.Context) {
 		TradePrice:      tradePrice.Price,
 		Signature:       in.Signature,
 		Status:          1,
+		Leverage:        in.Leverage,
 		CreatedAt:       time.Now().UTC(),
 		UpdatedAt:       time.Now().UTC(),
 	}
