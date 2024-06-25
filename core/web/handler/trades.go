@@ -95,7 +95,7 @@ func IsMinerOrValidor(minerid string) (bool, error) {
 	return true, nil
 }
 
-func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade, leverageStr string) (string, error) {
+func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade) (string, error) {
 	_, err := IsMinerOrValidor(newTrade.MinerID)
 	if err != nil {
 		return "miner not registered", err
@@ -106,6 +106,7 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade, leverageStr str
 		return "address and key not match", err
 	}
 
+	leverageStr := newTrade.Leverage
 	msg := fmt.Sprintf("%s%s%d%s%s%d%d%s", newTrade.MinerID, newTrade.PubKey, newTrade.Nonce, newTrade.TokenAddress, newTrade.PositionManager, newTrade.Direction, newTrade.Timestamp, leverageStr)
 	err = VerifySign(msg, newTrade.PubKey, newTrade.Signature)
 	if err != nil {
@@ -137,8 +138,6 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade, leverageStr str
 	} else {
 		leverage = float64(1.0)
 	}
-
-	newTrade.Leverage = leverage
 
 	if latestTrade != nil {
 		if newTrade.Nonce == latestTrade.Nonce {
@@ -233,6 +232,7 @@ func CreateTradde(c *gin.Context) {
 		TradePrice:      tradePrice.Price,
 		Signature:       in.Signature,
 		Status:          1,
+		Leverage:        in.Leverage,
 		CreatedAt:       time.Now().UTC(),
 		UpdatedAt:       time.Now().UTC(),
 	}
@@ -248,7 +248,7 @@ func CreateTradde(c *gin.Context) {
 		return
 	}
 
-	errmsg, err := checkTradeValid(latestTrade, newTrade, in.Leverage)
+	errmsg, err := checkTradeValid(latestTrade, newTrade)
 	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("CreateTrade checkTradeValid failed")
 		r.Code = http.StatusInternalServerError
