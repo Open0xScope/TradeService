@@ -20,7 +20,7 @@ type AdsTokenEvents struct {
 }
 
 type AdsTokenTrade struct {
-	bun.BaseModel `bun:"table:ads_token_trades,alias:oat"`
+	bun.BaseModel `bun:"table:ads_token_trades_test,alias:oat"`
 
 	// ID               int64  `bun:"id,pk,autoincrement"`
 	MinerID         string  `bun:"miner_id,pk,notnull"`
@@ -53,7 +53,7 @@ type ChainTokenPrice struct {
 }
 
 type AdsMinerWhitelist struct {
-	bun.BaseModel `bun:"table:ads_addr_whitelist,alias:oat"`
+	bun.BaseModel `bun:"table:ads_addr_whitelist_test,alias:oat"`
 
 	Address   string `bun:"address,pk,notnull"`
 	UID       int    `bun:"uid"`
