@@ -127,11 +127,11 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade, leverageStr str
 			return "parse leverage failed", err
 		}
 
-		if newTrade.Leverage < 0.2 || newTrade.Leverage > 5 {
+		if leverage < 0.2 || leverage > 5 {
 			return "the leverage is not in the range", errors.New("the leverage is not in the range")
 		}
 
-		if !isDivisible(newTrade.Leverage, 0.1) {
+		if !isDivisible(leverage, 0.1) {
 			return "the leverage is not an integer multiple of the basic unit", errors.New("the leverage is not an integer multiple of the basic unit")
 		}
 	} else {
