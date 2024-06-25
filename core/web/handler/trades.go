@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/Open0xScope/CommuneXService/core/db"
@@ -18,15 +17,15 @@ import (
 )
 
 type InCreateTrade struct {
-	MinerID         string `json:"miner_id"`
-	PubKey          string `json:"pub_key"`
-	Nonce           int64  `json:"nonce"`
-	Token           string `json:"token"`
-	PositionManager string `json:"position_manager"`
-	Direction       int    `json:"direction"`
-	Timestamp       int64  `json:"timestamp"`
-	Leverage        string `json:"leverage"`
-	Signature       string `json:"signature"`
+	MinerID         string  `json:"miner_id"`
+	PubKey          string  `json:"pub_key"`
+	Nonce           int64   `json:"nonce"`
+	Token           string  `json:"token"`
+	PositionManager string  `json:"position_manager"`
+	Direction       int     `json:"direction"`
+	Timestamp       int64   `json:"timestamp"`
+	Leverage        float64 `json:"leverage"`
+	Signature       string  `json:"signature"`
 }
 
 func isDivisible(a, b float64) bool {
@@ -95,7 +94,7 @@ func IsMinerOrValidor(minerid string) (bool, error) {
 	return true, nil
 }
 
-func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade, leverageStr string) (string, error) {
+func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade) (string, error) {
 	_, err := IsMinerOrValidor(newTrade.MinerID)
 	if err != nil {
 		return "miner not registered", err
@@ -106,7 +105,11 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade, leverageStr str
 		return "address and key not match", err
 	}
 
-	msg := fmt.Sprintf("%s%s%d%s%s%d%d%s", newTrade.MinerID, newTrade.PubKey, newTrade.Nonce, newTrade.TokenAddress, newTrade.PositionManager, newTrade.Direction, newTrade.Timestamp, leverageStr)
+	msg := fmt.Sprintf("%s%s%d%s%s%d%d", newTrade.MinerID, newTrade.PubKey, newTrade.Nonce, newTrade.TokenAddress, newTrade.PositionManager, newTrade.Direction, newTrade.Timestamp)
+	if newTrade.Leverage != 0 {
+		msg += fmt.Sprintf("%v", newTrade.Leverage)
+	}
+
 	err = VerifySign(msg, newTrade.PubKey, newTrade.Signature)
 	if err != nil {
 		return "sign error", err
@@ -120,13 +123,8 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade, leverageStr str
 		return "access day limit exceeded, please try again later", err
 	}
 
-	leverage := float64(0.0)
-	if leverageStr != "" {
-		leverage, err = strconv.ParseFloat(leverageStr, 64)
-		if err != nil {
-			return "parse leverage failed", err
-		}
-
+	leverage := newTrade.Leverage
+	if leverage != 0 {
 		if leverage < 0.2 || leverage > 5 {
 			return "the leverage is not in the range", errors.New("the leverage is not in the range")
 		}
@@ -233,6 +231,7 @@ func CreateTradde(c *gin.Context) {
 		TradePrice:      tradePrice.Price,
 		Signature:       in.Signature,
 		Status:          1,
+		Leverage:        in.Leverage,
 		CreatedAt:       time.Now().UTC(),
 		UpdatedAt:       time.Now().UTC(),
 	}
@@ -248,7 +247,7 @@ func CreateTradde(c *gin.Context) {
 		return
 	}
 
-	errmsg, err := checkTradeValid(latestTrade, newTrade, in.Leverage)
+	errmsg, err := checkTradeValid(latestTrade, newTrade)
 	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("CreateTrade checkTradeValid failed")
 		r.Code = http.StatusInternalServerError
