@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/Open0xScope/CommuneXService/core/db"
@@ -18,15 +17,15 @@ import (
 )
 
 type InCreateTrade struct {
-	MinerID         string `json:"miner_id"`
-	PubKey          string `json:"pub_key"`
-	Nonce           int64  `json:"nonce"`
-	Token           string `json:"token"`
-	PositionManager string `json:"position_manager"`
-	Direction       int    `json:"direction"`
-	Timestamp       int64  `json:"timestamp"`
-	Leverage        string `json:"leverage"`
-	Signature       string `json:"signature"`
+	MinerID         string  `json:"miner_id"`
+	PubKey          string  `json:"pub_key"`
+	Nonce           int64   `json:"nonce"`
+	Token           string  `json:"token"`
+	PositionManager string  `json:"position_manager"`
+	Direction       int     `json:"direction"`
+	Timestamp       int64   `json:"timestamp"`
+	Leverage        float64 `json:"leverage"`
+	Signature       string  `json:"signature"`
 }
 
 func isDivisible(a, b float64) bool {
@@ -106,8 +105,11 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade) (string, error)
 		return "address and key not match", err
 	}
 
-	leverageStr := newTrade.Leverage
-	msg := fmt.Sprintf("%s%s%d%s%s%d%d%s", newTrade.MinerID, newTrade.PubKey, newTrade.Nonce, newTrade.TokenAddress, newTrade.PositionManager, newTrade.Direction, newTrade.Timestamp, leverageStr)
+	msg := fmt.Sprintf("%s%s%d%s%s%d%d", newTrade.MinerID, newTrade.PubKey, newTrade.Nonce, newTrade.TokenAddress, newTrade.PositionManager, newTrade.Direction, newTrade.Timestamp)
+	if newTrade.Leverage != 0 {
+		msg += fmt.Sprintf("%v", newTrade.Leverage)
+	}
+
 	err = VerifySign(msg, newTrade.PubKey, newTrade.Signature)
 	if err != nil {
 		return "sign error", err
@@ -121,13 +123,8 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade) (string, error)
 		return "access day limit exceeded, please try again later", err
 	}
 
-	leverage := float64(0.0)
-	if leverageStr != "" {
-		leverage, err = strconv.ParseFloat(leverageStr, 64)
-		if err != nil {
-			return "parse leverage failed", err
-		}
-
+	leverage := newTrade.Leverage
+	if leverage != 0 {
 		if leverage < 0.2 || leverage > 5 {
 			return "the leverage is not in the range", errors.New("the leverage is not in the range")
 		}
