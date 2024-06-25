@@ -37,14 +37,17 @@ func updateMinerTradeStatus() error {
 
 	logger.Logrus.WithFields(logrus.Fields{"NoWhiteList": res}).Info("updateMinerTradeStatus  miner nowhitelist info")
 
-	values := db.GetDB().NewValues(&res)
+	if len(res) != 0 {
+		values := db.GetDB().NewValues(&res)
 
-	rowres, err := db.GetDB().NewUpdate().With("t2", values).Model(&model.AdsTokenTrade{}).TableExpr("t2").Set("status = 0").Where("miner_id = t2.address").Exec(ctx)
-	if err != nil {
-		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("updateMinerTradeStatus get miner whitelist failed")
-		return err
+		rowres, err := db.GetDB().NewUpdate().With("t2", values).Model(&model.AdsTokenTrade{}).TableExpr("t2").Set("status = 0").Where("miner_id = t2.address").Exec(ctx)
+		if err != nil {
+			logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("updateMinerTradeStatus set status failed")
+			return err
+		}
+		logger.Logrus.WithFields(logrus.Fields{"UpdateStatusResult": rowres}).Info("updateMinerTradeStatus update trade status result")
+
 	}
-	logger.Logrus.WithFields(logrus.Fields{"UpdateStatusResult": rowres}).Info("updateMinerTradeStatus update trade status result")
 
 	return nil
 }
