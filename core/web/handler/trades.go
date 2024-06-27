@@ -125,8 +125,14 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade) (string, error)
 
 	leverage := newTrade.Leverage
 	if leverage != 0 {
-		if leverage < 0.2 || leverage > 5 {
-			return "the leverage is not in the range", errors.New("the leverage is not in the range")
+		if newTrade.TokenAddress == "0x0000000000000000000000000000000000000000" || newTrade.TokenAddress == "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599" {
+			if leverage < 0.1 || leverage > 50 {
+				return "the leverage is not in the range for eth/btc", errors.New("the leverage is not in the range")
+			}
+		} else {
+			if leverage < 0.1 || leverage > 20 {
+				return "the leverage is not in the range for others", errors.New("the leverage is not in the range")
+			}
 		}
 
 		if !isDivisible(leverage, 0.1) {

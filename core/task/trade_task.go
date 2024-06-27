@@ -74,7 +74,7 @@ func getTokenPrice(token string, timestamp int64) (*model.ChainTokenPrice, error
 
 	mathtime := time.Unix(timestamp, 0).Format("2006-01-02 15:04:05")
 
-	err := db.GetDB().NewSelect().Model(&res).Where("chain = ? and token_address = ? and pt <= ?", "eth", token, mathtime).Order("pt DESC").Limit(1).Scan(ctx)
+	err := db.GetDB().NewSelect().Model(&res).Where("token_address = ? and pt <= ?", token, mathtime).Order("pt DESC").Limit(1).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
