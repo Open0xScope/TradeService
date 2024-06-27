@@ -62,7 +62,7 @@ func getLatestEvents() ([]byte, error) {
 
 	maxpt := ""
 
-	err := db.GetDB().NewSelect().Table("ads_token_events").ColumnExpr("max(pt)").Where("chain = ?", "eth").Scan(context.Background(), &maxpt)
+	err := db.GetDB().NewSelect().Table("ads_token_events").ColumnExpr("max(pt)").Where("chain in (?)", bun.In(ChainList)).Scan(context.Background(), &maxpt)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func getLatestEvents() ([]byte, error) {
 	}
 
 	res := make([]model.AdsTokenEvents, 0)
-	err = db.GetDB().NewSelect().Model(&res).Where("chain = ? and pt = ? and token_address in (?)", "eth", maxpt, bun.In(TokenList)).Scan(context.Background())
+	err = db.GetDB().NewSelect().Model(&res).Where("chain in (?) and pt = ? and token_address in (?)", bun.In(ChainList), maxpt, bun.In(TokenList)).Scan(context.Background())
 	if err != nil {
 		return nil, err
 	}
