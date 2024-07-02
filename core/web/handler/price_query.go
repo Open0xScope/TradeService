@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Open0xScope/CommuneXService/core/db"
@@ -28,11 +29,24 @@ func getTokenPrice(token string, timestamp int64) (*model.ChainTokenPrice, error
 	return &res, nil
 }
 
-func getLatestPrice() ([]model.ChainTokenPrice, error) {
+func getLatestPrice(timestr string) ([]model.ChainTokenPrice, error) {
 	res := make([]model.ChainTokenPrice, 0)
-	err := db.GetDB().NewSelect().Model(&res).Where("chain in (?) and rn = 1 and token_address in (?)", bun.In(ChainList), bun.In(TokenList)).Scan(context.Background())
-	if err != nil {
-		return nil, err
+	if timestr == "" {
+		err := db.GetDB().NewSelect().Model(&res).Where("chain in (?) and rn = 1 and token_address in (?)", bun.In(ChainList), bun.In(TokenList)).Scan(context.Background())
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		ts, err := strconv.ParseInt(timestr, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		mathtime := time.Unix(ts, 0).Format("2006-01-02 15:04:05")
+
+		err = db.GetDB().NewSelect().Model(&res).Where("chain in (?) and rn = 1 and token_address in (?) and pt <= ?", bun.In(ChainList), bun.In(TokenList), mathtime).Scan(context.Background())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return res, nil
@@ -52,7 +66,9 @@ func GetLatestPrice(c *gin.Context) {
 	timeStr := c.Query("timestamp")
 	sigStr := c.Query("sig")
 
-	logger.Logrus.WithFields(logrus.Fields{"MinerID": userIdStr, "PubKey": pubKeyStr, "Timestamp": timeStr, "Signature": sigStr}).Info("GetLatestPrice info")
+	latestStr := c.Query("latesttime")
+
+	logger.Logrus.WithFields(logrus.Fields{"MinerID": userIdStr, "PubKey": pubKeyStr, "Timestamp": timeStr, "Signature": sigStr, "LatestTime": latestStr}).Info("GetLatestPrice info")
 
 	rawData := fmt.Sprintf("%s%s%s", userIdStr, pubKeyStr, timeStr)
 	err := VerifySign(rawData, pubKeyStr, sigStr)
@@ -70,7 +86,7 @@ func GetLatestPrice(c *gin.Context) {
 		return
 	}
 
-	result, err := getLatestPrice()
+	result, err := getLatestPrice(latestStr)
 	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("GetLatestPrice getLatestPrice failed")
 		r.Code = http.StatusInternalServerError
