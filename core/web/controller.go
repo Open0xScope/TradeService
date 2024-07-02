@@ -36,6 +36,7 @@ func ServerRoute() *gin.Engine {
 	router.POST("/createtrade", handler.CreateTradde)
 	router.GET("/getusertrades", handler.GetUserTraddes)
 	router.GET("/getalltrades", handler.GetAllTraddes)
+	router.GET("/getregistertime", handler.GetRegisterTime)
 
 	router.GET("/getallevents", handler.GetAllEvents)
 	router.GET("/getlatestprice", handler.GetLatestPrice)

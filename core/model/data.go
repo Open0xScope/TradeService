@@ -61,3 +61,11 @@ type AdsMinerWhitelist struct {
 	Status    int    `bun:"status"`
 	TimeStamp int64  `bun:"timestamp"`
 }
+
+type AdsMinerPerformance struct {
+	bun.BaseModel `bun:"table:ads_miner_performance_test,alias:oat"`
+
+	UID          int    `bun:"uid,pk,notnull"`
+	Address      string `bun:"address"`
+	RegisterTime string `bun:"register_time"`
+}
