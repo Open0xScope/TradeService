@@ -31,22 +31,33 @@ func getTokenPrice(token string, timestamp int64) (*model.ChainTokenPrice, error
 
 func getLatestPrice(timestr string) ([]model.ChainTokenPrice, error) {
 	res := make([]model.ChainTokenPrice, 0)
+	mathtime := ""
 	if timestr == "" {
-		err := db.GetDB().NewSelect().Model(&res).Where("chain in (?) and rn = 1 and token_address in (?)", bun.In(ChainList), bun.In(TokenList)).Scan(context.Background())
-		if err != nil {
-			return nil, err
-		}
+		mathtime = "2100-01-02 15:04:05"
 	} else {
 		ts, err := strconv.ParseInt(timestr, 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		mathtime := time.Unix(ts, 0).Format("2006-01-02 15:04:05")
+		mathtime = time.Unix(ts, 0).Format("2006-01-02 15:04:05")
+	}
 
-		err = db.GetDB().NewSelect().Model(&res).Where("chain in (?) and token_address in (?) and pt = ?", bun.In(ChainList), bun.In(TokenList), mathtime).Scan(context.Background())
-		if err != nil {
-			return nil, err
-		}
+	// Build the subquery
+	subquery := db.GetDB().NewSelect().
+		Table("crawler_ods.ods_crawler_coingecko_trade_token_price").
+		Column("*").
+		ColumnExpr("row_number() OVER (PARTITION BY token_address ORDER BY pt DESC) AS rn").
+		Where("chain IN (?)", bun.In(ChainList)).
+		Where("token_address IN (?)", bun.In(TokenList)).
+		Where("pt <= ?", mathtime)
+
+	// Build the main query
+	err := db.GetDB().NewSelect().
+		TableExpr("(?) AS a", subquery).
+		Where("rn = 1").
+		Scan(context.Background(), &res)
+	if err != nil {
+		return nil, err
 	}
 
 	return res, nil
