@@ -43,7 +43,7 @@ func getLatestPrice(timestr string) ([]model.ChainTokenPrice, error) {
 		}
 		mathtime := time.Unix(ts, 0).Format("2006-01-02 15:04:05")
 
-		err = db.GetDB().NewSelect().Model(&res).Where("chain in (?) and rn = 1 and token_address in (?) and pt <= ?", bun.In(ChainList), bun.In(TokenList), mathtime).Scan(context.Background())
+		err = db.GetDB().NewSelect().Model(&res).Where("chain in (?) and token_address in (?) and pt = ?", bun.In(ChainList), bun.In(TokenList), mathtime).Scan(context.Background())
 		if err != nil {
 			return nil, err
 		}
