@@ -16,12 +16,23 @@ import (
 )
 
 func getTokenPrice(token string, timestamp int64) (*model.ChainTokenPrice, error) {
-	ctx := context.Background()
 	var res model.ChainTokenPrice
-
 	mathtime := time.Unix(timestamp, 0).Format("2006-01-02 15:04:05")
 
-	err := db.GetDB().NewSelect().Model(&res).Where("chain in (?) and token_address = ? and pt <= ?", bun.In(ChainList), token, mathtime).Order("pt DESC").Limit(1).Scan(ctx)
+	// Build the subquery
+	subquery := db.GetDB().NewSelect().
+		Table("crawler_ods.ods_crawler_coingecko_trade_token_price").
+		Column("*").
+		ColumnExpr("row_number() OVER (PARTITION BY token_address ORDER BY pt DESC) AS rn").
+		Where("chain IN (?)", bun.In(ChainList)).
+		Where("token_address = ?", token).
+		Where("pt <= ?", mathtime)
+
+	// Build the main query
+	err := db.GetDB().NewSelect().
+		TableExpr("(?) AS a", subquery).
+		Where("rn = 1").
+		Scan(context.Background(), &res)
 	if err != nil {
 		return nil, err
 	}
