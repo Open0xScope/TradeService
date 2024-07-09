@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/Open0xScope/CommuneXService/config"
+	"github.com/Open0xScope/CommuneXService/core/redis"
 	"github.com/Open0xScope/CommuneXService/core/task"
 	"github.com/Open0xScope/CommuneXService/core/web"
 	"github.com/Open0xScope/CommuneXService/utils/logger"
@@ -24,6 +25,11 @@ func main() {
 	err := config.LoadConf(*configPath)
 	if err != nil {
 		log.Fatal("load config failed:", err)
+	}
+
+	err = redis.InitRedis()
+	if err != nil {
+		log.Fatal("init redis failed:", err)
 	}
 
 	task.TradeStatusTask()

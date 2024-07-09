@@ -19,9 +19,18 @@ type PostgresqlConfig struct {
 	SchemaName string
 }
 
+type RedisConfig struct {
+	Name         string
+	Password     string
+	Host         string
+	DB           int64
+	MinIdleConns int64
+}
+
 // struct decode must has tag
 type Config struct {
 	PostgresqlConfig PostgresqlConfig
+	RedisConf        RedisConfig
 }
 
 var (
@@ -98,4 +107,10 @@ func GetPostgresqlConfig() PostgresqlConfig {
 	configMutex.RLock()
 	defer configMutex.RUnlock()
 	return config.PostgresqlConfig
+}
+
+func GetRedisConfig() RedisConfig {
+	configMutex.RLock()
+	defer configMutex.RUnlock()
+	return config.RedisConf
 }

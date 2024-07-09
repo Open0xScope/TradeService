@@ -11,6 +11,7 @@ import (
 
 	"github.com/Open0xScope/CommuneXService/core/db"
 	"github.com/Open0xScope/CommuneXService/core/model"
+	"github.com/Open0xScope/CommuneXService/core/redis"
 	"github.com/Open0xScope/CommuneXService/utils/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -94,7 +95,7 @@ func IsMinerOrValidor(minerid string) (bool, error) {
 	return true, nil
 }
 
-func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade) (string, error) {
+func checknewtrade(newTrade *model.AdsTokenTrade) (string, error) {
 	_, err := IsMinerOrValidor(newTrade.MinerID)
 	if err != nil {
 		return "miner not registered", err
@@ -144,6 +145,23 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade) (string, error)
 
 	newTrade.Leverage = leverage
 
+	if newTrade.PositionManager != "open" && newTrade.PositionManager != "close" {
+		return "position manager invalid", errors.New("position manager is invalid")
+	}
+
+	if newTrade.Timestamp > time.Now().Unix() {
+		return "creation timestamp more than now", errors.New("trade has invalid timestamp")
+	}
+
+	last10min := time.Now().Add(-time.Minute).Unix()
+	if newTrade.Timestamp < last10min {
+		return "creation timestamp is old", errors.New("trade has invalid timestamp")
+	}
+
+	return "check new trade success", nil
+}
+
+func checktwotrade(latestTrade, newTrade *model.AdsTokenTrade) (string, error) {
 	if latestTrade != nil {
 		if newTrade.Nonce == latestTrade.Nonce {
 			return "invalid nonce", errors.New("trade has invalid nonce")
@@ -162,20 +180,76 @@ func checkTradeValid(latestTrade, newTrade *model.AdsTokenTrade) (string, error)
 		}
 	}
 
-	if newTrade.PositionManager != "open" && newTrade.PositionManager != "close" {
-		return "position manager invalid", errors.New("position manager is invalid")
+	return "check two trade success", nil
+}
+
+func checkTradeLeverageLimit(oldTrade, newTrade *model.AdsTokenTrade) (string, error) {
+	rkey := fmt.Sprintf("%s%s%d", newTrade.MinerID, newTrade.TokenAddress, newTrade.Direction)
+
+	cv, err := redis.GetCounterValue(rkey)
+	if err != nil {
+		return "get key value failed", err
+	}
+	if cv >= 7 {
+		err = redis.SetCounterExpir(rkey, 7*24*time.Hour)
+		if err != nil {
+			return "open trade limit exceeded and set time failed", err
+		}
+		return "open trade limit exceeded", errors.New("open trade limit exceeded")
 	}
 
-	if newTrade.Timestamp > time.Now().Unix() {
-		return "creation timestamp more than now", errors.New("trade has invalid timestamp")
+	if oldTrade.Leverage >= newTrade.Leverage {
+		err = redis.DelCounter(rkey)
+		if err != nil {
+			return "del key failed", err
+		}
+	} else {
+		err = redis.SetCounter(rkey, cv+1)
+		if err != nil {
+			return "set key value failed", err
+		}
 	}
 
-	last10min := time.Now().Add(-time.Minute).Unix()
-	if newTrade.Timestamp < last10min {
-		return "creation timestamp is old", errors.New("trade has invalid timestamp")
+	return insertCloseTrade(oldTrade)
+}
+
+func insertCloseTrade(trade *model.AdsTokenTrade) (string, error) {
+	//insert close trade
+	closeTrade := &model.AdsTokenTrade{
+		MinerID:         trade.MinerID,
+		PubKey:          trade.PubKey,
+		Nonce:           trade.Nonce + 1,
+		TokenAddress:    trade.TokenAddress,
+		PositionManager: "close",
+		Direction:       trade.Direction,
+		Timestamp:       trade.Timestamp + 1,
+		TradePrice:      trade.TradePrice,
+		Signature:       "no need sign",
+		Status:          1,
+		Leverage:        trade.Leverage,
+		CreatedAt:       time.Now().UTC(),
+		UpdatedAt:       time.Now().UTC(),
 	}
 
-	return "check trade success", nil
+	err := insertTrade(closeTrade)
+	if err != nil {
+		return "insert close trade failed", err
+	}
+
+	return "insert close trade success", nil
+}
+
+func checkTrade(oldtrade, newTrade *model.AdsTokenTrade) (string, error) {
+	msg, err := checknewtrade(newTrade)
+	if err != nil {
+		return msg, err
+	}
+
+	if newTrade.PositionManager == "open" && newTrade.PositionManager == oldtrade.PositionManager {
+		return checkTradeLeverageLimit(oldtrade, newTrade)
+	}
+
+	return checktwotrade(oldtrade, newTrade)
 }
 
 func updatePrice4H(latestTrade, newTrade *model.AdsTokenTrade) error {
@@ -245,7 +319,7 @@ func CreateTradde(c *gin.Context) {
 	logger.Logrus.WithFields(logrus.Fields{"Trade": newTrade}).Info("CreateTradde info")
 
 	//check trade rules
-	latestTrade, err := getLatestTrade(newTrade.MinerID, newTrade.TokenAddress)
+	oldTrade, err := getLatestTrade(newTrade.MinerID, newTrade.TokenAddress)
 	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("CreateTrade getLatestTrade failed")
 		r.Code = http.StatusInternalServerError
@@ -253,9 +327,9 @@ func CreateTradde(c *gin.Context) {
 		return
 	}
 
-	errmsg, err := checkTradeValid(latestTrade, newTrade)
+	errmsg, err := checkTrade(oldTrade, newTrade)
 	if err != nil {
-		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("CreateTrade checkTradeValid failed")
+		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("CreateTrade checkTrade failed")
 		r.Code = http.StatusInternalServerError
 		r.Message = errmsg
 		return
@@ -269,7 +343,7 @@ func CreateTradde(c *gin.Context) {
 		return
 	}
 
-	err = updatePrice4H(latestTrade, newTrade)
+	err = updatePrice4H(oldTrade, newTrade)
 	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Warn("CreateTrade updatePrice4H failed")
 	}
