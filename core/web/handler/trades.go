@@ -150,12 +150,12 @@ func checknewtrade(newTrade *model.AdsTokenTrade) (string, error) {
 	}
 
 	if newTrade.Timestamp > time.Now().Unix() {
-		return "creation timestamp more than now", errors.New("trade has invalid timestamp")
+		return "creation timestamp more than now", errors.New("creation timestamp more than now")
 	}
 
 	last10min := time.Now().Add(-time.Minute).Unix()
 	if newTrade.Timestamp < last10min {
-		return "creation timestamp is old", errors.New("trade has invalid timestamp")
+		return "creation timestamp is old", errors.New("creation timestamp is old")
 	}
 
 	return "check new trade success", nil

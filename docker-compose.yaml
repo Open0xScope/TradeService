@@ -1,29 +1,31 @@
 version: '3'
 
 services:
-  server:
-    image: openscope-service:latest
-    container_name: openscope
-    ports:
-      - "0.0.0.0:8000:8000"
-    restart: on-failure
-    volumes:
-      - "./config.yaml:/root/config.yaml"
-      - "./log:/root/log"
-    networks:
-      - sdk
-
   redis:
     image: redis:latest
     container_name: redisserver
     ports:
-      - "6379:6379"
+      - "0.0.0.0:6379:6379"
     networks:
       - sdk
     volumes:
       - ./redis.conf:/usr/local/etc/redis/redis.conf
       - ./redis-data:/data
     restart: on-failure
+
+  server:
+    image: openscope-service:latest
+    container_name: openscope
+    ports:
+      - "0.0.0.0:8000:8000"
+    restart: on-failure
+    depends_on:
+      - redis
+    volumes:
+      - "./config.yaml:/root/config.yaml"
+      - "./log:/root/log"
+    networks:
+      - sdk
 
 networks:
   sdk:

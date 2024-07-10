@@ -20,17 +20,15 @@ type PostgresqlConfig struct {
 }
 
 type RedisConfig struct {
-	Name         string
-	Password     string
-	Host         string
-	DB           int64
-	MinIdleConns int64
+	Host         string `mapstructure:"Host"`
+	DB           int64  `mapstructure:"DB"`
+	MinIdleConns int64  `mapstructure:"MinIdleConns"`
 }
 
 // struct decode must has tag
 type Config struct {
-	PostgresqlConfig PostgresqlConfig
-	RedisConf        RedisConfig
+	PostgresqlConfig PostgresqlConfig `mapstructure:"PostgresqlConfig"`
+	RedisConf        RedisConfig      `mapstructure:"RedisConfig"`
 }
 
 var (
