@@ -73,7 +73,7 @@ func updateTradePrice4h(order model.AdsTokenTrade) error {
 func getTokenPrice(token string, timestamp int64) (*model.ChainTokenPrice, error) {
 	var res model.ChainTokenPrice
 
-	mathtime := time.Unix(timestamp, 0).Format("2006-01-02 15:04:05")
+	mathtime := time.Unix(timestamp, 0).UTC().Format("2006-01-02 15:04:05")
 
 	// Build the subquery
 	subquery := db.GetDB().NewSelect().

@@ -17,7 +17,7 @@ import (
 
 func getTokenPrice(token string, timestamp int64) (*model.ChainTokenPrice, error) {
 	var res model.ChainTokenPrice
-	mathtime := time.Unix(timestamp, 0).Format("2006-01-02 15:04:05")
+	mathtime := time.Unix(timestamp, 0).UTC().Format("2006-01-02 15:04:05")
 
 	// Build the subquery
 	subquery := db.GetDB().NewSelect().
@@ -50,7 +50,7 @@ func getLatestPrice(timestr string) ([]model.ChainTokenPrice, error) {
 		if err != nil {
 			return nil, err
 		}
-		mathtime = time.Unix(ts, 0).Format("2006-01-02 15:04:05")
+		mathtime = time.Unix(ts, 0).UTC().Format("2006-01-02 15:04:05")
 	}
 
 	// Build the subquery
