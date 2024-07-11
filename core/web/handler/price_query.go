@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Open0xScope/CommuneXService/core/db"
@@ -15,12 +16,23 @@ import (
 )
 
 func getTokenPrice(token string, timestamp int64) (*model.ChainTokenPrice, error) {
-	ctx := context.Background()
 	var res model.ChainTokenPrice
+	mathtime := time.Unix(timestamp, 0).UTC().Format("2006-01-02 15:04:05")
 
-	mathtime := time.Unix(timestamp, 0).Format("2006-01-02 15:04:05")
+	// Build the subquery
+	subquery := db.GetDB().NewSelect().
+		Table("crawler_ods.ods_crawler_coingecko_trade_token_price").
+		Column("*").
+		ColumnExpr("row_number() OVER (PARTITION BY token_address ORDER BY pt DESC) AS rn").
+		Where("chain IN (?)", bun.In(ChainList)).
+		Where("token_address = ?", token).
+		Where("pt <= ?", mathtime)
 
-	err := db.GetDB().NewSelect().Model(&res).Where("chain in (?) and token_address = ? and pt <= ?", bun.In(ChainList), token, mathtime).Order("pt DESC").Limit(1).Scan(ctx)
+	// Build the main query
+	err := db.GetDB().NewSelect().
+		TableExpr("(?) AS a", subquery).
+		Where("rn = 1").
+		Scan(context.Background(), &res)
 	if err != nil {
 		return nil, err
 	}
@@ -28,9 +40,33 @@ func getTokenPrice(token string, timestamp int64) (*model.ChainTokenPrice, error
 	return &res, nil
 }
 
-func getLatestPrice() ([]model.ChainTokenPrice, error) {
+func getLatestPrice(timestr string) ([]model.ChainTokenPrice, error) {
 	res := make([]model.ChainTokenPrice, 0)
-	err := db.GetDB().NewSelect().Model(&res).Where("chain in (?) and rn = 1 and token_address in (?)", bun.In(ChainList), bun.In(TokenList)).Scan(context.Background())
+	mathtime := ""
+	if timestr == "" {
+		mathtime = "2100-01-02 15:04:05"
+	} else {
+		ts, err := strconv.ParseInt(timestr, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		mathtime = time.Unix(ts, 0).UTC().Format("2006-01-02 15:04:05")
+	}
+
+	// Build the subquery
+	subquery := db.GetDB().NewSelect().
+		Table("crawler_ods.ods_crawler_coingecko_trade_token_price").
+		Column("*").
+		ColumnExpr("row_number() OVER (PARTITION BY token_address ORDER BY pt DESC) AS rn").
+		Where("chain IN (?)", bun.In(ChainList)).
+		Where("token_address IN (?)", bun.In(TokenList)).
+		Where("pt <= ?", mathtime)
+
+	// Build the main query
+	err := db.GetDB().NewSelect().
+		TableExpr("(?) AS a", subquery).
+		Where("rn = 1").
+		Scan(context.Background(), &res)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +88,9 @@ func GetLatestPrice(c *gin.Context) {
 	timeStr := c.Query("timestamp")
 	sigStr := c.Query("sig")
 
-	logger.Logrus.WithFields(logrus.Fields{"MinerID": userIdStr, "PubKey": pubKeyStr, "Timestamp": timeStr, "Signature": sigStr}).Info("GetLatestPrice info")
+	latestStr := c.Query("latesttime")
+
+	logger.Logrus.WithFields(logrus.Fields{"MinerID": userIdStr, "PubKey": pubKeyStr, "Timestamp": timeStr, "Signature": sigStr, "LatestTime": latestStr}).Info("GetLatestPrice info")
 
 	rawData := fmt.Sprintf("%s%s%s", userIdStr, pubKeyStr, timeStr)
 	err := VerifySign(rawData, pubKeyStr, sigStr)
@@ -70,7 +108,7 @@ func GetLatestPrice(c *gin.Context) {
 		return
 	}
 
-	result, err := getLatestPrice()
+	result, err := getLatestPrice(latestStr)
 	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("GetLatestPrice getLatestPrice failed")
 		r.Code = http.StatusInternalServerError

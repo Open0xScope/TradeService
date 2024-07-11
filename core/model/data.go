@@ -41,13 +41,11 @@ type AdsTokenTrade struct {
 }
 
 type ChainTokenPrice struct {
-	bun.BaseModel `bun:"table:view_ads_trade_token_price,alias:oat"`
-
-	Pt             string  `bun:"pt,pk,notnull"`
-	Chain          string  `bun:"chain,pk,notnull"`
-	TokenAddress   string  `bun:"token_address,pk,notnull"`
-	Price          float64 `bun:"price,notnull"`
-	Web            string  `bun:"web,notnull"`
+	Pt             string  `bun:"pt"`
+	Chain          string  `bun:"chain"`
+	TokenAddress   string  `bun:"token_address"`
+	Price          float64 `bun:"price"`
+	Web            string  `bun:"web"`
 	ScopeTimeStamp string  `bun:"scope_timestamp"`
 	Rank           int     `bun:"rn"`
 }
@@ -60,4 +58,12 @@ type AdsMinerWhitelist struct {
 	Stake     int    `bun:"stake"`
 	Status    int    `bun:"status"`
 	TimeStamp int64  `bun:"timestamp"`
+}
+
+type AdsMinerPerformance struct {
+	bun.BaseModel `bun:"table:ads_miner_performance_test,alias:oat"`
+
+	UID          int    `bun:"uid,pk,notnull"`
+	Address      string `bun:"address"`
+	RegisterTime string `bun:"register_time"`
 }

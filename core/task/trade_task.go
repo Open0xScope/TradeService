@@ -7,9 +7,11 @@ import (
 
 	"github.com/Open0xScope/CommuneXService/core/db"
 	"github.com/Open0xScope/CommuneXService/core/model"
+	"github.com/Open0xScope/CommuneXService/core/web/handler"
 	"github.com/Open0xScope/CommuneXService/utils/logger"
 	cron "github.com/robfig/cron/v3"
 	"github.com/sirupsen/logrus"
+	"github.com/uptrace/bun"
 )
 
 func TradeStatusTask() {
@@ -69,12 +71,24 @@ func updateTradePrice4h(order model.AdsTokenTrade) error {
 }
 
 func getTokenPrice(token string, timestamp int64) (*model.ChainTokenPrice, error) {
-	ctx := context.Background()
 	var res model.ChainTokenPrice
 
-	mathtime := time.Unix(timestamp, 0).Format("2006-01-02 15:04:05")
+	mathtime := time.Unix(timestamp, 0).UTC().Format("2006-01-02 15:04:05")
 
-	err := db.GetDB().NewSelect().Model(&res).Where("token_address = ? and pt <= ?", token, mathtime).Order("pt DESC").Limit(1).Scan(ctx)
+	// Build the subquery
+	subquery := db.GetDB().NewSelect().
+		Table("crawler_ods.ods_crawler_coingecko_trade_token_price").
+		Column("*").
+		ColumnExpr("row_number() OVER (PARTITION BY token_address ORDER BY pt DESC) AS rn").
+		Where("chain IN (?)", bun.In(handler.ChainList)).
+		Where("token_address = ?", token).
+		Where("pt <= ?", mathtime)
+
+	// Build the main query
+	err := db.GetDB().NewSelect().
+		TableExpr("(?) AS a", subquery).
+		Where("rn = 1").
+		Scan(context.Background(), &res)
 	if err != nil {
 		return nil, err
 	}
