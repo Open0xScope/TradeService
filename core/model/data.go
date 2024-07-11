@@ -61,7 +61,7 @@ type AdsMinerWhitelist struct {
 }
 
 type AdsMinerPerformance struct {
-	bun.BaseModel `bun:"table:ads_miner_performance_test,alias:oat"`
+	bun.BaseModel `bun:"table:ads_miner_performance,alias:oat"`
 
 	UID          int    `bun:"uid,pk,notnull"`
 	Address      string `bun:"address"`
