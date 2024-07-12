@@ -11,6 +11,13 @@ import (
 )
 
 func MinerStatusTask() {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err, "Stack": PrintStack()}).Fatalf("MinerStatusTask panic")
+		}
+	}()
+
 	c := cron.New()
 
 	_, err := c.AddFunc("@every 10s", func() {
