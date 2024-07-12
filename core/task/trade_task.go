@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"time"
 
 	"github.com/Open0xScope/CommuneXService/core/db"
@@ -14,7 +15,20 @@ import (
 	"github.com/uptrace/bun"
 )
 
+func PrintStack() string {
+	var buf [4096]byte
+	n := runtime.Stack(buf[:], false)
+	return string(buf[:n])
+}
+
 func TradeStatusTask() {
+	defer func() {
+		err := recover()
+		if err != nil {
+			logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err, "Stack": PrintStack()}).Fatalf("TradeStatusTask panic")
+		}
+	}()
+
 	c := cron.New()
 
 	_, err := c.AddFunc("@every 10s", func() {
