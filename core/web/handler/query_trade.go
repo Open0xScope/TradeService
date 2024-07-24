@@ -42,7 +42,7 @@ func getAllTrades(times string) ([]model.AdsTokenTrade, error) {
 		last7daytime = s
 	}
 
-	err := db.GetDB().NewSelect().Model(&res).Where("status > 0 and timestamp >= ?", last7daytime).Order("timestamp DESC").Limit(10000).Scan(ctx)
+	err := db.GetDB().NewSelect().Model(&res).Where("status > 0 and timestamp >= ?", last7daytime).Order("timestamp DESC").Limit(50000).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
