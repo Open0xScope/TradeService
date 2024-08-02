@@ -72,7 +72,7 @@ func CheckTradeRateLimitDay(pubkey string) bool {
 	}
 
 	if len(accessList) >= 200 {
-		logger.Logrus.WithFields(logrus.Fields{"PubKey": pubkey, "Data": accessList}).Info("CheckTradeRateLimitDay more than access limit")
+		logger.Logrus.WithFields(logrus.Fields{"PubKey": pubkey}).Info("CheckTradeRateLimitDay more than access limit")
 
 		return false
 	}

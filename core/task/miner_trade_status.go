@@ -42,7 +42,7 @@ func updateMinerTradeStatus() error {
 		return err
 	}
 
-	logger.Logrus.WithFields(logrus.Fields{"NoWhiteList": res}).Info("updateMinerTradeStatus  miner nowhitelist info")
+	// logger.Logrus.WithFields(logrus.Fields{"NoWhiteList": res}).Info("updateMinerTradeStatus  miner nowhitelist info")
 
 	if len(res) != 0 {
 		values := db.GetDB().NewValues(&res)

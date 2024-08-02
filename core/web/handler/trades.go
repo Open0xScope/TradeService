@@ -245,7 +245,7 @@ func checkTrade(oldtrade, newTrade *model.AdsTokenTrade) (string, error) {
 		return msg, err
 	}
 
-	if newTrade.PositionManager == "open" && newTrade.PositionManager == oldtrade.PositionManager {
+	if newTrade.PositionManager == "open" && oldtrade != nil && newTrade.PositionManager == oldtrade.PositionManager {
 		return checkTradeLeverageLimit(oldtrade, newTrade)
 	}
 
