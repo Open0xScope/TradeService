@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/Open0xScope/CommuneXService/core/db"
 	"github.com/Open0xScope/CommuneXService/core/model"
@@ -43,7 +42,7 @@ func getAllTrades(times, pageStr, limitStr string) ([]model.AdsTokenTrade, error
 	last7daytime := int64(0)
 
 	if times == "" {
-		last7daytime = time.Now().UTC().Add(-14 * 24 * time.Hour).Unix()
+		last7daytime = 0
 	} else {
 		s, err := strconv.ParseInt(times, 10, 64)
 		if err != nil {
@@ -58,7 +57,7 @@ func getAllTrades(times, pageStr, limitStr string) ([]model.AdsTokenTrade, error
 	limit, _ := strconv.ParseInt(limitStr, 10, 64)
 	offset := (page - 1) * limit
 
-	err := db.GetDB().NewSelect().Model(&res).Where("status > 0 and timestamp >= ?", last7daytime).Order("timestamp DESC").Limit(int(limit)).Offset(int(offset)).Scan(ctx)
+	err := db.GetDB().NewSelect().Model(&res).Where("status > 0 and timestamp >= ?", last7daytime).Order("timestamp ASC").Limit(int(limit)).Offset(int(offset)).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
