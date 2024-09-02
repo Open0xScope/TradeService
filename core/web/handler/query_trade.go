@@ -24,20 +24,9 @@ func getUserTrades(userId string) ([]model.AdsTokenTrade, error) {
 	return res, nil
 }
 
-func getTotalCount() (int, error) {
+func getAllTrades(times, pageStr, limitStr string) ([]model.ResTokenTrade, error) {
 	ctx := context.Background()
-
-	totalCount, err := db.GetDB().NewSelect().Model(&model.AdsTokenTrade{}).Where("status > 0").Count(ctx)
-	if err != nil {
-		return 0, err
-	}
-
-	return totalCount, nil
-}
-
-func getAllTrades(times, pageStr, limitStr string) ([]model.AdsTokenTrade, error) {
-	ctx := context.Background()
-	res := make([]model.AdsTokenTrade, 0)
+	res := make([]model.ResTokenTrade, 0)
 
 	last7daytime := int64(0)
 
@@ -57,7 +46,7 @@ func getAllTrades(times, pageStr, limitStr string) ([]model.AdsTokenTrade, error
 	limit, _ := strconv.ParseInt(limitStr, 10, 64)
 	offset := (page - 1) * limit
 
-	err := db.GetDB().NewSelect().Model(&res).Where("status > 0 and timestamp >= ?", last7daytime).Order("timestamp ASC").Limit(int(limit)).Offset(int(offset)).Scan(ctx)
+	err := db.GetDB().NewSelect().Model(&res).Column("miner_id", "nonce", "token", "position_manager", "direction", "timestamp", "price", "price_4h", "leverage", "create_at", "update_at").Where("status > 0 and timestamp >= ?", last7daytime).Order("timestamp ASC").Limit(int(limit)).Offset(int(offset)).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -160,14 +149,6 @@ func GetAllTraddes(c *gin.Context) {
 		return
 	}
 
-	totalCount, err := getTotalCount()
-	if err != nil {
-		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("GetAllTraddes getTotalCount failed")
-		r.Code = http.StatusInternalServerError
-		r.Message = "get total count failed"
-		return
-	}
-
 	result, err := getAllTrades(tradetimeStr, page, limit)
 	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("GetAllTraddes getAllTrades failed")
@@ -176,16 +157,6 @@ func GetAllTraddes(c *gin.Context) {
 		return
 	}
 
-	type TradesResult struct {
-		TotalCount int                   `json:"total_count"`
-		TradeList  []model.AdsTokenTrade `json:"trade_list"`
-	}
-
-	resData := TradesResult{
-		TotalCount: totalCount,
-		TradeList:  result,
-	}
-
 	r.Message = "get all trades success"
-	r.Data = resData
+	r.Data = result
 }

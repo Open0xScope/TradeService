@@ -40,6 +40,23 @@ type AdsTokenTrade struct {
 	UpdatedAt time.Time `bun:"update_at,notnull"`
 }
 
+type ResTokenTrade struct {
+	bun.BaseModel `bun:"table:ads_token_trades,alias:oat"`
+
+	MinerID         string  `bun:"miner_id,pk,notnull"`
+	Nonce           int64   `bun:"nonce,pk,notnull"`
+	TokenAddress    string  `bun:"token,pk,notnull"`
+	PositionManager string  `bun:"position_manager,notnull"`
+	Direction       int     `bun:"direction,notnull"`
+	Timestamp       int64   `bun:"timestamp,notnull"`
+	TradePrice      float64 `bun:"price,notnull"`
+	TradePrice4H    float64 `bun:"price_4h"`
+	Leverage        float64 `bun:"leverage"`
+
+	CreatedAt time.Time `bun:"create_at,notnull"`
+	UpdatedAt time.Time `bun:"update_at,notnull"`
+}
+
 type ChainTokenPrice struct {
 	Pt             string  `bun:"pt"`
 	Chain          string  `bun:"chain"`
