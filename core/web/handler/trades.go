@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/Open0xScope/CommuneXService/core/db"
@@ -273,13 +274,25 @@ func updatePrice4H(latestTrade, newTrade *model.AdsTokenTrade) error {
 	return nil
 }
 
+func PrintStack() string {
+	var buf [4096]byte
+	n := runtime.Stack(buf[:], false)
+	return string(buf[:n])
+}
+
 func CreateTradde(c *gin.Context) {
 	r := &Response{
 		Code:    http.StatusOK,
 		Message: "success",
 	}
 	defer func(r *Response) {
-		c.JSON(http.StatusOK, r)
+		err := recover()
+		if err != nil {
+			logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err, "Stack": PrintStack()}).Fatalf("TradeStatusTask panic")
+			c.JSON(http.StatusInternalServerError, r)
+		} else {
+			c.JSON(http.StatusOK, r)
+		}
 	}(r)
 
 	var in = InCreateTrade{}

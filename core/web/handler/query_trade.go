@@ -25,7 +25,18 @@ func getUserTrades(userId string) ([]model.AdsTokenTrade, error) {
 	return res, nil
 }
 
-func getAllTrades(times string) ([]model.AdsTokenTrade, error) {
+func getTotalCount() (int, error) {
+	ctx := context.Background()
+
+	totalCount, err := db.GetDB().NewSelect().Model(&model.AdsTokenTrade{}).Where("status > 0").Count(ctx)
+	if err != nil {
+		return 0, err
+	}
+
+	return totalCount, nil
+}
+
+func getAllTrades(times, pageStr, limitStr string) ([]model.AdsTokenTrade, error) {
 	ctx := context.Background()
 	res := make([]model.AdsTokenTrade, 0)
 
@@ -42,7 +53,12 @@ func getAllTrades(times string) ([]model.AdsTokenTrade, error) {
 		last7daytime = s
 	}
 
-	err := db.GetDB().NewSelect().Model(&res).Where("status > 0 and timestamp >= ?", last7daytime).Order("timestamp DESC").Limit(50000).Scan(ctx)
+	page, _ := strconv.ParseInt(pageStr, 10, 64)
+
+	limit, _ := strconv.ParseInt(limitStr, 10, 64)
+	offset := (page - 1) * limit
+
+	err := db.GetDB().NewSelect().Model(&res).Where("status > 0 and timestamp >= ?", last7daytime).Order("timestamp DESC").Limit(int(limit)).Offset(int(offset)).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -107,10 +123,12 @@ func GetAllTraddes(c *gin.Context) {
 	pubKeyStr := c.Query("pubKey")
 	timeStr := c.Query("timestamp")
 	sigStr := c.Query("sig")
+	page := c.Query("page")
+	limit := c.Query("limit")
 
 	tradetimeStr := c.Query("tradetime")
 
-	logger.Logrus.WithFields(logrus.Fields{"MinerID": userIdStr, "PubKey": pubKeyStr, "Timestamp": timeStr, "Signature": sigStr, "TradeTime": tradetimeStr}).Info("GetAllTraddes info")
+	logger.Logrus.WithFields(logrus.Fields{"MinerID": userIdStr, "PubKey": pubKeyStr, "Timestamp": timeStr, "Signature": sigStr, "TradeTime": tradetimeStr, "Page": page, "Limit": limit}).Info("GetAllTraddes info")
 
 	rawData := fmt.Sprintf("%s%s%s", userIdStr, pubKeyStr, timeStr)
 	err := VerifySign(rawData, pubKeyStr, sigStr)
@@ -143,7 +161,15 @@ func GetAllTraddes(c *gin.Context) {
 		return
 	}
 
-	result, err := getAllTrades(tradetimeStr)
+	totalCount, err := getTotalCount()
+	if err != nil {
+		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("GetAllTraddes getTotalCount failed")
+		r.Code = http.StatusInternalServerError
+		r.Message = "get total count failed"
+		return
+	}
+
+	result, err := getAllTrades(tradetimeStr, page, limit)
 	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("GetAllTraddes getAllTrades failed")
 		r.Code = http.StatusInternalServerError
@@ -151,6 +177,16 @@ func GetAllTraddes(c *gin.Context) {
 		return
 	}
 
+	type TradesResult struct {
+		TotalCount int                   `json:"total_count"`
+		TradeList  []model.AdsTokenTrade `json:"trade_list"`
+	}
+
+	resData := TradesResult{
+		TotalCount: totalCount,
+		TradeList:  result,
+	}
+
 	r.Message = "get all trades success"
-	r.Data = result
+	r.Data = resData
 }
