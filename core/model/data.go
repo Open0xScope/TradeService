@@ -41,7 +41,7 @@ type AdsTokenTrade struct {
 }
 
 type ResTokenTrade struct {
-	bun.BaseModel `bun:"table:ads_token_trades,alias:oat"`
+	bun.BaseModel `bun:"table:ads_token_trades_test,alias:oat"`
 
 	MinerID         string  `bun:"miner_id,pk,notnull"`
 	Nonce           int64   `bun:"nonce,pk,notnull"`
