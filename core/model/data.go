@@ -24,16 +24,16 @@ type AdsTokenTrade struct {
 
 	// ID               int64  `bun:"id,pk,autoincrement"`
 	MinerID         string  `bun:"miner_id,pk,notnull"`
-	PubKey          string  `bun:"pub_key,pk,notnull"`
+	PubKey          string  `bun:"pub_key,notnull"`
 	Nonce           int64   `bun:"nonce,pk,notnull"`
 	TokenAddress    string  `bun:"token,pk,notnull"`
 	PositionManager string  `bun:"position_manager,notnull"`
 	Direction       int     `bun:"direction,notnull"`
-	Timestamp       int64   `bun:"timestamp,notnull"`
+	Timestamp       int64   `bun:"timestamp,pk,notnull"`
 	TradePrice      float64 `bun:"price,notnull"`
 	TradePrice4H    float64 `bun:"price_4h"`
 	Signature       string  `bun:"signature,notnull"`
-	Status          int     `bun:"status"`
+	Status          int     `bun:"status,pk,notnull"`
 	Leverage        float64 `bun:"leverage"`
 
 	CreatedAt time.Time `bun:"create_at,notnull"`
@@ -48,7 +48,7 @@ type ResTokenTrade struct {
 	TokenAddress    string  `bun:"token,pk,notnull"`
 	PositionManager string  `bun:"position_manager,notnull"`
 	Direction       int     `bun:"direction,notnull"`
-	Timestamp       int64   `bun:"timestamp,notnull"`
+	Timestamp       int64   `bun:"timestamp,pk,notnull"`
 	TradePrice      float64 `bun:"price,notnull"`
 	TradePrice4H    float64 `bun:"price_4h"`
 	Leverage        float64 `bun:"leverage"`

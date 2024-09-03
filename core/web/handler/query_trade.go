@@ -41,12 +41,21 @@ func getAllTrades(times, pageStr, limitStr string) ([]model.ResTokenTrade, error
 		last7daytime = s
 	}
 
+	orderSQL := "timestamp ASC"
 	page, _ := strconv.ParseInt(pageStr, 10, 64)
+	if page < 1 {
+		page = 1
+	}
 
 	limit, _ := strconv.ParseInt(limitStr, 10, 64)
+	if limit < 1 {
+		limit = 50000
+		orderSQL = "timestamp DESC"
+	}
+
 	offset := (page - 1) * limit
 
-	err := db.GetDB().NewSelect().Model(&res).Column("miner_id", "nonce", "token", "position_manager", "direction", "timestamp", "price", "price_4h", "leverage", "create_at", "update_at").Where("status > 0 and timestamp >= ?", last7daytime).Order("timestamp ASC").Limit(int(limit)).Offset(int(offset)).Scan(ctx)
+	err := db.GetDB().NewSelect().Model(&res).Column("miner_id", "nonce", "token", "position_manager", "direction", "timestamp", "price", "price_4h", "leverage", "create_at", "update_at").Where("status > 0 and timestamp >= ?", last7daytime).Order(orderSQL).Limit(int(limit)).Offset(int(offset)).Scan(ctx)
 	if err != nil {
 		return nil, err
 	}
