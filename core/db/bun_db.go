@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/Open0xScope/CommuneXService/config"
 	"github.com/uptrace/bun"
@@ -26,10 +27,14 @@ func GetDB() *bun.DB {
 		password := config.GetPostgresqlConfig().Password
 		dbname := config.GetPostgresqlConfig().DBName
 		schemaname := config.GetPostgresqlConfig().SchemaName
-		dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", account, password, host, port, dbname)
+		dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable&connect_timeout=10", account, password, host, port, dbname)
 		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn), pgdriver.WithConnParams(map[string]interface{}{
 			"search_path": schemaname,
 		})))
+
+		sqldb.SetMaxOpenConns(10)
+		sqldb.SetMaxIdleConns(5)
+		sqldb.SetConnMaxLifetime(time.Hour)
 
 		db = bun.NewDB(sqldb, pgdialect.New())
 	})
