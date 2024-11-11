@@ -33,7 +33,7 @@ type AdsTokenTrade struct {
 	TradePrice      float64 `bun:"price,notnull"`
 	TradePrice4H    float64 `bun:"price_4h"`
 	Signature       string  `bun:"signature,notnull"`
-	Status          int     `bun:"status,pk,notnull"`
+	Status          int     `bun:"status"`
 	Leverage        float64 `bun:"leverage"`
 
 	CreatedAt time.Time `bun:"create_at,notnull"`
