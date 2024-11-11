@@ -254,6 +254,10 @@ func checkTrade(oldtrade, newTrade *model.AdsTokenTrade) (string, error) {
 }
 
 func updatePrice4H(latestTrade, newTrade *model.AdsTokenTrade) error {
+	if latestTrade == nil {
+		return nil
+	}
+
 	if newTrade.PositionManager != "close" && latestTrade.PositionManager != "open" {
 		return nil
 	}
