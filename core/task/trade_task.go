@@ -90,7 +90,7 @@ func getTokenPrice(token string, timestamp int64) (*model.ChainTokenPrice, error
 	mathtime := time.Unix(timestamp, 0).UTC().Format("2006-01-02 15:04:05")
 
 	// Build the subquery
-	subquery := db.GetDB().NewSelect().
+	subquery := db.GetPriceDB().NewSelect().
 		Table("crawler_ods.ods_crawler_coingecko_trade_token_price").
 		Column("*").
 		ColumnExpr("row_number() OVER (PARTITION BY token_address ORDER BY pt DESC) AS rn").
@@ -99,7 +99,7 @@ func getTokenPrice(token string, timestamp int64) (*model.ChainTokenPrice, error
 		Where("pt <= ?", mathtime)
 
 	// Build the main query
-	err := db.GetDB().NewSelect().
+	err := db.GetPriceDB().NewSelect().
 		TableExpr("(?) AS a", subquery).
 		Where("rn = 1").
 		Scan(context.Background(), &res)

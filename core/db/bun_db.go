@@ -40,3 +40,25 @@ func GetDB() *bun.DB {
 	})
 	return db
 }
+
+func GetPriceDB() *bun.DB {
+	oncePrice.Do(func() {
+		host := config.GetPostgresqlConfig().Host
+		port := config.GetPostgresqlConfig().Port
+		account := config.GetPostgresqlConfig().Account
+		password := config.GetPostgresqlConfig().Password
+		dbname := config.GetPostgresqlConfig().DBName
+
+		dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable&connect_timeout=10", account, password, host, port, dbname)
+		sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn), pgdriver.WithConnParams(map[string]interface{}{
+			"search_path": "crawler_ods",
+		})))
+
+		sqldb.SetMaxOpenConns(10)
+		sqldb.SetMaxIdleConns(5)
+		sqldb.SetConnMaxLifetime(time.Hour)
+
+		dbPrice = bun.NewDB(sqldb, pgdialect.New())
+	})
+	return dbPrice
+}
