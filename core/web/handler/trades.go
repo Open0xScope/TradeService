@@ -122,7 +122,11 @@ func checknewtrade(newTrade *model.AdsTokenTrade) (string, error) {
 	}
 
 	if ok := CheckTradeRateLimitDay(newTrade.PubKey); !ok {
-		return "access day limit exceeded, please try again later", err
+		return "user access day limit exceeded, please try again later", err
+	}
+
+	if ok := CheckTradeTokenRateLimitDay(newTrade.PubKey, newTrade.TokenAddress); !ok {
+		return "token access day limit exceeded, please try again later", err
 	}
 
 	leverage := newTrade.Leverage

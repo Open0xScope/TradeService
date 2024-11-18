@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -17,6 +18,9 @@ var (
 
 	accessQueryMap = make(map[string][]time.Time)
 	qmutex         sync.Mutex
+
+	accessTokenDayMap = make(map[string][]time.Time)
+	mutextokenday     sync.Mutex
 )
 
 func CheckTradeRateLimit(pubkey string) bool {
@@ -71,7 +75,7 @@ func CheckTradeRateLimitDay(pubkey string) bool {
 		}
 	}
 
-	if len(accessList) >= 200 {
+	if len(accessList) >= 100 {
 		logger.Logrus.WithFields(logrus.Fields{"PubKey": pubkey}).Info("CheckTradeRateLimitDay more than access limit")
 
 		return false
@@ -80,6 +84,41 @@ func CheckTradeRateLimitDay(pubkey string) bool {
 	//update record
 	accessList = append(accessList, now)
 	accessDayMap[pubkey] = accessList
+
+	return true
+}
+
+func CheckTradeTokenRateLimitDay(pubkey, tokenAddr string) bool {
+	mutextokenday.Lock()
+	defer mutextokenday.Unlock()
+
+	now := time.Now()
+
+	key := fmt.Sprintf("%s%s", pubkey, tokenAddr)
+
+	accessTokenList, ok := accessTokenDayMap[key]
+	if !ok {
+		accessTokenList = []time.Time{}
+	}
+
+	// delete more than one day
+	dat := 24 * time.Hour
+	for i := len(accessTokenList) - 1; i >= 0; i-- {
+		if now.Sub(accessTokenList[i]) > dat {
+			accessTokenList = accessTokenList[i+1:]
+			break
+		}
+	}
+
+	if len(accessTokenList) >= 50 {
+		logger.Logrus.WithFields(logrus.Fields{"PubKey": pubkey, "TokenAddress": tokenAddr}).Info("CheckTradeTokenRateLimitDay more than access limit")
+
+		return false
+	}
+
+	//update record
+	accessTokenList = append(accessTokenList, now)
+	accessTokenDayMap[key] = accessTokenList
 
 	return true
 }
