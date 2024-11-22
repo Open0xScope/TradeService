@@ -117,15 +117,18 @@ func checknewtrade(newTrade *model.AdsTokenTrade) (string, error) {
 		return "sign error", err
 	}
 
-	if ok := CheckTradeRateLimit(newTrade.PubKey); !ok {
+	err = CheckTradeRateLimit(newTrade.PubKey)
+	if err != nil {
 		return "access limit exceeded, please try again later", err
 	}
 
-	if ok := CheckTradeRateLimitDay(newTrade.PubKey); !ok {
+	err = CheckTradeRateLimitDay(newTrade.PubKey)
+	if err != nil {
 		return "user access day limit exceeded, please try again later", err
 	}
 
-	if ok := CheckTradeTokenRateLimitDay(newTrade.PubKey, newTrade.TokenAddress); !ok {
+	err = CheckTradeTokenRateLimitDay(newTrade.PubKey, newTrade.TokenAddress)
+	if err != nil {
 		return "token access day limit exceeded, please try again later", err
 	}
 

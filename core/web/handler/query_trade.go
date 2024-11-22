@@ -88,7 +88,8 @@ func GetUserTraddes(c *gin.Context) {
 		return
 	}
 
-	if ok := CheckQueryRateLimit(pubKeyStr); !ok {
+	err = CheckQueryRateLimit(pubKeyStr)
+	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("GetUserTraddes CheckQueryRateLimit failed")
 		r.Code = http.StatusTooManyRequests
 		r.Message = "access limit exceeded, please try again later"
@@ -136,7 +137,8 @@ func GetAllTraddes(c *gin.Context) {
 		return
 	}
 
-	if ok := CheckQueryRateLimit(pubKeyStr); !ok {
+	err = CheckQueryRateLimit(pubKeyStr)
+	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("GetAllTraddes CheckQueryRateLimit failed")
 		r.Code = http.StatusTooManyRequests
 		r.Message = "access limit exceeded, please try again later"

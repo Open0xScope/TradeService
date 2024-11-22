@@ -101,7 +101,8 @@ func GetLatestPrice(c *gin.Context) {
 		return
 	}
 
-	if ok := CheckQueryRateLimit(pubKeyStr); !ok {
+	err = CheckQueryRateLimit(pubKeyStr)
+	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("GetLatestPrice CheckQueryRateLimit failed")
 		r.Code = http.StatusTooManyRequests
 		r.Message = "access limit exceeded, please try again later"

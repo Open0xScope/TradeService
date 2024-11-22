@@ -51,7 +51,8 @@ func GetRegisterTime(c *gin.Context) {
 		return
 	}
 
-	if ok := CheckQueryRateLimit(pubKeyStr); !ok {
+	err = CheckQueryRateLimit(pubKeyStr)
+	if err != nil {
 		logger.Logrus.WithFields(logrus.Fields{"ErrMsg": err}).Error("GetRegisterTime CheckQueryRateLimit failed")
 		r.Code = http.StatusTooManyRequests
 		r.Message = "access limit exceeded, please try again later"

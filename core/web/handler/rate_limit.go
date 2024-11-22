@@ -1,12 +1,12 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/Open0xScope/CommuneXService/utils/logger"
-	"github.com/sirupsen/logrus"
+	"github.com/Open0xScope/CommuneXService/core/redis"
 )
 
 var (
@@ -23,134 +23,67 @@ var (
 	mutextokenday     sync.Mutex
 )
 
-func CheckTradeRateLimit(pubkey string) bool {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	now := time.Now()
-
-	accessList, ok := accessMap[pubkey]
-	if !ok {
-		accessList = []time.Time{}
+func chaeckKeyExp(key string, limit int64, exp time.Duration) error {
+	ctx := context.Background()
+	// Increment the count
+	count, err := redis.GetRedisInst().Incr(ctx, key).Result()
+	if err != nil {
+		return fmt.Errorf("failed to increment key: %v", err)
 	}
 
-	// delete more than one minite
-	for i := len(accessList) - 1; i >= 0; i-- {
-		if now.Sub(accessList[i]) > time.Minute {
-			accessList = accessList[i+1:]
-			break
+	if count == 1 {
+		err = redis.GetRedisInst().Expire(ctx, key, exp).Err()
+		if err != nil {
+			return fmt.Errorf("failed to expire key: %v", err)
 		}
 	}
 
-	if len(accessList) >= 20 {
-		logger.Logrus.WithFields(logrus.Fields{"PubKey": pubkey, "Data": accessList}).Info("CheckRateLimit more than access limit")
-
-		return false
+	if count > int64(limit) {
+		return fmt.Errorf("current:maximum %v : %v", count, limit)
 	}
-
-	//update record
-	accessList = append(accessList, now)
-	accessMap[pubkey] = accessList
-
-	return true
+	return nil
 }
 
-func CheckTradeRateLimitDay(pubkey string) bool {
-	mutexday.Lock()
-	defer mutexday.Unlock()
+func CheckTradeRateLimit(pubkey string) error {
+	redisKey := fmt.Sprintf("trade_min_rate_limit:%s", pubkey)
 
-	now := time.Now()
-
-	accessList, ok := accessDayMap[pubkey]
-	if !ok {
-		accessList = []time.Time{}
+	err := chaeckKeyExp(redisKey, 20, time.Minute)
+	if err != nil {
+		return fmt.Errorf("CheckTradeRateLimit,%s %v", pubkey, err)
 	}
 
-	// delete more than one day
-	dat := 24 * time.Hour
-	for i := len(accessList) - 1; i >= 0; i-- {
-		if now.Sub(accessList[i]) > dat {
-			accessList = accessList[i+1:]
-			break
-		}
-	}
-
-	if len(accessList) >= 100 {
-		logger.Logrus.WithFields(logrus.Fields{"PubKey": pubkey}).Info("CheckTradeRateLimitDay more than access limit")
-
-		return false
-	}
-
-	//update record
-	accessList = append(accessList, now)
-	accessDayMap[pubkey] = accessList
-
-	return true
+	return nil
 }
 
-func CheckTradeTokenRateLimitDay(pubkey, tokenAddr string) bool {
-	mutextokenday.Lock()
-	defer mutextokenday.Unlock()
+func CheckTradeRateLimitDay(pubkey string) error {
+	redisKey := fmt.Sprintf("trade_day_rate_limit:%s", pubkey)
 
-	now := time.Now()
-
-	key := fmt.Sprintf("%s%s", pubkey, tokenAddr)
-
-	accessTokenList, ok := accessTokenDayMap[key]
-	if !ok {
-		accessTokenList = []time.Time{}
+	err := chaeckKeyExp(redisKey, 100, 24*time.Hour)
+	if err != nil {
+		return fmt.Errorf("CheckTradeRateLimitDay,%s %v", pubkey, err)
 	}
 
-	// delete more than one day
-	dat := 24 * time.Hour
-	for i := len(accessTokenList) - 1; i >= 0; i-- {
-		if now.Sub(accessTokenList[i]) > dat {
-			accessTokenList = accessTokenList[i+1:]
-			break
-		}
-	}
-
-	if len(accessTokenList) >= 50 {
-		logger.Logrus.WithFields(logrus.Fields{"PubKey": pubkey, "TokenAddress": tokenAddr}).Info("CheckTradeTokenRateLimitDay more than access limit")
-
-		return false
-	}
-
-	//update record
-	accessTokenList = append(accessTokenList, now)
-	accessTokenDayMap[key] = accessTokenList
-
-	return true
+	return nil
 }
 
-func CheckQueryRateLimit(pubkey string) bool {
-	qmutex.Lock()
-	defer qmutex.Unlock()
+func CheckTradeTokenRateLimitDay(pubkey, tokenAddr string) error {
+	redisKey := fmt.Sprintf("trade_token_day_rate_limit:%s:%s", pubkey, tokenAddr)
 
-	now := time.Now()
-
-	accessList, ok := accessQueryMap[pubkey]
-	if !ok {
-		accessList = []time.Time{}
+	err := chaeckKeyExp(redisKey, 50, 24*time.Hour)
+	if err != nil {
+		return fmt.Errorf("CheckTradeTokenRateLimitDay,%s:%s %v", pubkey, tokenAddr, err)
 	}
 
-	// delete more than one minite
-	for i := len(accessList) - 1; i >= 0; i-- {
-		if now.Sub(accessList[i]) > time.Minute {
-			accessList = accessList[i+1:]
-			break
-		}
+	return nil
+}
+
+func CheckQueryRateLimit(pubkey string) error {
+	redisKey := fmt.Sprintf("trade_query_min_rate_limit:%s", pubkey)
+
+	err := chaeckKeyExp(redisKey, 60, time.Minute)
+	if err != nil {
+		return fmt.Errorf("CheckQueryRateLimit,%s %v", pubkey, err)
 	}
 
-	if len(accessList) >= 60 {
-		logger.Logrus.WithFields(logrus.Fields{"PubKey": pubkey, "Data": accessList}).Info("CheckQueryRateLimit more than access limit")
-
-		return false
-	}
-
-	//update record
-	accessList = append(accessList, now)
-	accessQueryMap[pubkey] = accessList
-
-	return true
+	return nil
 }
